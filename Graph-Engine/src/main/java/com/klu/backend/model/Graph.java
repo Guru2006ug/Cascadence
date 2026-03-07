@@ -21,21 +21,29 @@ public class Graph {
     private final Map<String, List<Edge>> adjacencyList = new LinkedHashMap<>();
     private final Map<String, List<Edge>> reverseAdjList = new LinkedHashMap<>();
     private final Map<String, Integer> inDegree = new HashMap<>();
+    private final Map<String, CorrelationGroup> correlationGroups = new LinkedHashMap<>();
 
     // ──────────────────────────── Node Operations ────────────────────────────
 
     /**
-     * Add a service node. O(1)
-     * Initializes adjacency lists and inDegree entry.
+     * Add a service node with default recoveryTime (0) and importanceWeight (1.0). O(1)
      */
     public synchronized void addNode(String id, double restartCost) {
+        addNode(id, restartCost, 0.0, 1.0);
+    }
+
+    /**
+     * Add a service node with all attributes. O(1)
+     */
+    public synchronized void addNode(String id, double restartCost,
+                                      double recoveryTime, double importanceWeight) {
         if (id == null || id.isBlank()) {
             throw new GraphValidationException("Service ID cannot be null or blank");
         }
         if (nodes.containsKey(id)) {
             throw new GraphValidationException("Service already exists: " + id);
         }
-        nodes.put(id, new ServiceNode(id, restartCost));
+        nodes.put(id, new ServiceNode(id, restartCost, recoveryTime, importanceWeight));
         adjacencyList.putIfAbsent(id, new ArrayList<>());
         reverseAdjList.putIfAbsent(id, new ArrayList<>());
         inDegree.putIfAbsent(id, 0);
@@ -69,10 +77,18 @@ public class Graph {
     // ──────────────────────────── Edge Operations ────────────────────────────
 
     /**
-     * Add a directed dependency edge. O(1) amortized.
-     * Validates: both nodes exist, probability ∈ [0,1], no self-loop, no duplicate.
+     * Add a directed dependency edge with default propagation delay (0). O(1) amortized.
      */
     public synchronized void addEdge(String from, String to, double probability, double infraCost) {
+        addEdge(from, to, probability, infraCost, 0.0);
+    }
+
+    /**
+     * Add a directed dependency edge with propagation delay. O(1) amortized.
+     * Validates: both nodes exist, probability in [0,1], no self-loop, no duplicate.
+     */
+    public synchronized void addEdge(String from, String to, double probability,
+                                      double infraCost, double propagationDelay) {
         validateNodeExists(from);
         validateNodeExists(to);
         if (from.equals(to)) {
@@ -88,7 +104,7 @@ public class Graph {
             throw new GraphValidationException("Dependency already exists: " + from + " → " + to);
         }
 
-        Edge edge = new Edge(from, to, probability, infraCost);
+        Edge edge = new Edge(from, to, probability, infraCost, propagationDelay);
         adjacencyList.get(from).add(edge);
         reverseAdjList.get(to).add(edge);
         inDegree.merge(to, 1, Integer::sum);
@@ -137,13 +153,54 @@ public class Graph {
     }
 
     /**
-     * Clear all nodes and edges.
+     * Clear all nodes, edges, and correlation groups.
      */
     public synchronized void clear() {
         nodes.clear();
         adjacencyList.clear();
         reverseAdjList.clear();
         inDegree.clear();
+        correlationGroups.clear();
+    }
+
+    // ──────────────────────────── Correlation Group Operations ────────────────────────────
+
+    /**
+     * Add a failure correlation group.
+     * All nodeIds must exist in the graph.
+     */
+    public synchronized void addCorrelationGroup(String groupId, List<String> nodeIds,
+                                                  double correlationFactor) {
+        if (groupId == null || groupId.isBlank()) {
+            throw new GraphValidationException("Group ID cannot be null or blank");
+        }
+        if (correlationGroups.containsKey(groupId)) {
+            throw new GraphValidationException("Correlation group already exists: " + groupId);
+        }
+        if (correlationFactor < 0 || correlationFactor > 1) {
+            throw new GraphValidationException("Correlation factor must be in [0, 1]: " + correlationFactor);
+        }
+        for (String nodeId : nodeIds) {
+            validateNodeExists(nodeId);
+        }
+        correlationGroups.put(groupId, new CorrelationGroup(groupId, new ArrayList<>(nodeIds), correlationFactor));
+    }
+
+    /**
+     * Remove a correlation group by ID.
+     */
+    public synchronized void removeCorrelationGroup(String groupId) {
+        if (!correlationGroups.containsKey(groupId)) {
+            throw new GraphValidationException("Correlation group not found: " + groupId);
+        }
+        correlationGroups.remove(groupId);
+    }
+
+    /**
+     * Get all correlation groups (unmodifiable view).
+     */
+    public Map<String, CorrelationGroup> getCorrelationGroups() {
+        return Collections.unmodifiableMap(correlationGroups);
     }
 
     // ──────────────────────────── Getters (Unmodifiable Views) ────────────────────────────

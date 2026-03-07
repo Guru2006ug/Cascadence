@@ -18,15 +18,17 @@ public record CriticalNodeResult(
     /**
      * Impact data for a single node.
      *
-     * @param nodeId        service identifier
-     * @param affectedCount number of services affected if this node fails
-     * @param impactScore   affectedCount / totalNodes
-     * @param cascadeDepth  max cascade depth from this node
+     * @param nodeId              service identifier
+     * @param affectedCount       number of services affected if this node fails
+     * @param impactScore         affectedCount / totalNodes
+     * @param weightedImpactScore sum of importanceWeights of affected / total weight
+     * @param cascadeDepth        max cascade depth from this node
      */
     public record NodeImpact(
             String nodeId,
             int affectedCount,
             double impactScore,
+            double weightedImpactScore,
             int cascadeDepth
     ) {}
 }

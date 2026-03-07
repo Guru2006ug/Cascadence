@@ -19,10 +19,12 @@ public record GraphStateResponse(
     /**
      * Service node summary.
      */
-    public record ServiceInfo(String id, double restartCost, String state) {}
+    public record ServiceInfo(String id, double restartCost, String state,
+                               double recoveryTime, double importanceWeight) {}
 
     /**
      * Dependency edge summary.
      */
-    public record DependencyInfo(String from, String to, double failureProbability, double infraCost) {}
+    public record DependencyInfo(String from, String to, double failureProbability,
+                                  double infraCost, double propagationDelay) {}
 }

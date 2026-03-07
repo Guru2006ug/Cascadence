@@ -63,7 +63,9 @@ public class RiskAnalysisService {
                 data.iterations(),
                 data.failureCounts(),
                 data.failureProbabilities(),
+                data.confidenceIntervals(),
                 data.expectedCascadeSize(),
+                data.weightedExpectedImpact(),
                 data.fragilityIndex(),
                 graph.getNodeCount()
         );
@@ -92,6 +94,7 @@ public class RiskAnalysisService {
                     nodeId,
                     cascade.affectedCount(),
                     cascade.impactScore(),
+                    cascade.weightedImpactScore(),
                     cascade.cascadeDepth()
             ));
         }

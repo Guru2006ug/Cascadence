@@ -1,5 +1,6 @@
 package com.klu.backend.service;
 
+import com.klu.backend.dto.request.AddCorrelationGroupRequest;
 import com.klu.backend.dto.request.AddDependencyRequest;
 import com.klu.backend.dto.request.AddServiceRequest;
 import com.klu.backend.dto.request.GraphLoadRequest;
@@ -30,7 +31,8 @@ public class GraphService {
     // ──────────────────────────── Service CRUD ────────────────────────────
 
     public void addService(AddServiceRequest request) {
-        graph.addNode(request.id(), request.restartCost());
+        graph.addNode(request.id(), request.restartCost(),
+                request.recoveryTime(), request.importanceWeight());
     }
 
     public void removeService(String id) {
@@ -44,7 +46,8 @@ public class GraphService {
                 request.from(),
                 request.to(),
                 request.failureProbability(),
-                request.infraCost()
+                request.infraCost(),
+                request.propagationDelay()
         );
     }
 
@@ -66,15 +69,27 @@ public class GraphService {
     public void loadGraph(GraphLoadRequest request) {
         graph.clear();
         for (GraphLoadRequest.ServiceInput svc : request.services()) {
-            graph.addNode(svc.id(), svc.restartCost());
+            graph.addNode(svc.id(), svc.restartCost(),
+                    svc.recoveryTime(), svc.importanceWeight());
         }
         for (GraphLoadRequest.DependencyInput dep : request.dependencies()) {
-            graph.addEdge(dep.from(), dep.to(), dep.failureProbability(), dep.infraCost());
+            graph.addEdge(dep.from(), dep.to(), dep.failureProbability(),
+                    dep.infraCost(), dep.propagationDelay());
         }
     }
 
     public void clearGraph() {
         graph.clear();
+    }
+
+    // ──────────────────────────── Correlation Groups ────────────────────────────
+
+    public void addCorrelationGroup(AddCorrelationGroupRequest request) {
+        graph.addCorrelationGroup(request.groupId(), request.nodeIds(), request.correlationFactor());
+    }
+
+    public void removeCorrelationGroup(String groupId) {
+        graph.removeCorrelationGroup(groupId);
     }
 
     // ──────────────────────────── Query ────────────────────────────
@@ -85,12 +100,14 @@ public class GraphService {
     public GraphStateResponse getGraphState() {
         List<GraphStateResponse.ServiceInfo> services = graph.getNodes().values().stream()
                 .map(n -> new GraphStateResponse.ServiceInfo(
-                        n.getId(), n.getRestartCost(), n.getState().name()))
+                        n.getId(), n.getRestartCost(), n.getState().name(),
+                        n.getRecoveryTime(), n.getImportanceWeight()))
                 .collect(Collectors.toList());
 
         List<GraphStateResponse.DependencyInfo> dependencies = graph.getAllEdges().stream()
                 .map(e -> new GraphStateResponse.DependencyInfo(
-                        e.getFrom(), e.getTo(), e.getFailureProbability(), e.getInfraCost()))
+                        e.getFrom(), e.getTo(), e.getFailureProbability(),
+                        e.getInfraCost(), e.getPropagationDelay()))
                 .collect(Collectors.toList());
 
         return new GraphStateResponse(services, dependencies, services.size(), dependencies.size());

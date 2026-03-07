@@ -1,5 +1,6 @@
 package com.klu.backend.controller;
 
+import com.klu.backend.dto.request.AddCorrelationGroupRequest;
 import com.klu.backend.dto.request.AddDependencyRequest;
 import com.klu.backend.dto.request.AddServiceRequest;
 import com.klu.backend.dto.request.GraphLoadRequest;
@@ -111,6 +112,35 @@ public class GraphController {
     @PostMapping("/simulation/cascade")
     public ResponseEntity<CascadeResult> simulateCascade(@RequestParam String failedNode) {
         return ResponseEntity.ok(simulationService.simulateCascade(failedNode));
+    }
+
+    /** Simulate time-based cascade with propagation delays (priority queue). */
+    @PostMapping("/simulation/temporal-cascade")
+    public ResponseEntity<TemporalCascadeResult> simulateTemporalCascade(
+            @RequestParam String failedNode) {
+        return ResponseEntity.ok(simulationService.simulateTemporalCascade(failedNode));
+    }
+
+    // ══════════════════════════ CORRELATION GROUPS ══════════════════════════
+
+    /** Add a failure correlation group. */
+    @PostMapping("/graph/correlation-groups")
+    public ResponseEntity<Map<String, String>> addCorrelationGroup(
+            @RequestBody AddCorrelationGroupRequest request) {
+        graphService.addCorrelationGroup(request);
+        return ResponseEntity.ok(Map.of("message",
+                "Correlation group added: " + request.groupId()
+                        + " (" + request.nodeIds().size() + " nodes, factor "
+                        + request.correlationFactor() + ")"));
+    }
+
+    /** Remove a correlation group. */
+    @DeleteMapping("/graph/correlation-groups/{groupId}")
+    public ResponseEntity<Map<String, String>> removeCorrelationGroup(
+            @PathVariable String groupId) {
+        graphService.removeCorrelationGroup(groupId);
+        return ResponseEntity.ok(Map.of("message",
+                "Correlation group removed: " + groupId));
     }
 
     // ══════════════════════════ RECOVERY ══════════════════════════

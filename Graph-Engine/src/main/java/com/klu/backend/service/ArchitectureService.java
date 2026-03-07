@@ -323,10 +323,12 @@ public class ArchitectureService {
     private Graph buildTemporaryGraph(GraphLoadRequest request) {
         Graph temp = new Graph();
         for (GraphLoadRequest.ServiceInput svc : request.services()) {
-            temp.addNode(svc.id(), svc.restartCost());
+            temp.addNode(svc.id(), svc.restartCost(),
+                    svc.recoveryTime(), svc.importanceWeight());
         }
         for (GraphLoadRequest.DependencyInput dep : request.dependencies()) {
-            temp.addEdge(dep.from(), dep.to(), dep.failureProbability(), dep.infraCost());
+            temp.addEdge(dep.from(), dep.to(), dep.failureProbability(),
+                    dep.infraCost(), dep.propagationDelay());
         }
         return temp;
     }

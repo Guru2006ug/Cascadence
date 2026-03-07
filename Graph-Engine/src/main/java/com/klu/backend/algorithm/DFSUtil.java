@@ -2,6 +2,7 @@ package com.klu.backend.algorithm;
 
 import com.klu.backend.model.Edge;
 import com.klu.backend.model.Graph;
+import com.klu.backend.model.ServiceNode;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
@@ -14,6 +15,8 @@ import java.util.*;
  *   If B fails, all nodes that depend on B (reachable via reverse edges) are affected.
  *   BFS gives us level-by-level cascade depth tracking.
  *
+ * Also computes weighted impact score using ServiceNode.importanceWeight.
+ *
  * Complexity: O(V + E)
  */
 @Component
@@ -24,10 +27,11 @@ public class DFSUtil {
      *
      * @param failedNode the initially failed service
      * @param graph      the service dependency graph
-     * @return cascade data including affected nodes, depth map, and impact score
+     * @return cascade data including affected nodes, depth map, impact, and weighted impact
      */
     public CascadeData simulateCascade(String failedNode, Graph graph) {
         Map<String, List<Edge>> reverseAdj = graph.getReverseAdjList();
+        Map<String, ServiceNode> nodes = graph.getNodes();
 
         Set<String> affected = new LinkedHashSet<>();
         Map<String, Integer> depthMap = new LinkedHashMap<>();
@@ -61,12 +65,20 @@ public class DFSUtil {
                 ? (double) affected.size() / graph.getNodeCount()
                 : 0.0;
 
+        // Weighted impact: sum of importanceWeights of affected / total weight
+        double totalWeight = nodes.values().stream()
+                .mapToDouble(ServiceNode::getImportanceWeight).sum();
+        double affectedWeight = affected.stream()
+                .mapToDouble(id -> nodes.get(id).getImportanceWeight()).sum();
+        double weightedImpactScore = totalWeight > 0 ? affectedWeight / totalWeight : 0.0;
+
         return new CascadeData(
                 failedNode,
                 new ArrayList<>(affected),
                 depthMap,
                 maxDepth,
                 impactScore,
+                weightedImpactScore,
                 affected.size()
         );
     }
@@ -80,6 +92,7 @@ public class DFSUtil {
             Map<String, Integer> depthMap,
             int cascadeDepth,
             double impactScore,
+            double weightedImpactScore,
             int affectedCount
     ) {}
 }

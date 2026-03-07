@@ -20,7 +20,19 @@ public record GraphLoadRequest(
         List<ServiceInput> services,
         List<DependencyInput> dependencies
 ) {
-    public record ServiceInput(String id, double restartCost) {}
+    public record ServiceInput(String id, double restartCost,
+                                Double recoveryTime, Double importanceWeight) {
+        public ServiceInput {
+            if (recoveryTime == null) recoveryTime = 0.0;
+            if (importanceWeight == null || importanceWeight <= 0) importanceWeight = 1.0;
+        }
+    }
 
-    public record DependencyInput(String from, String to, double failureProbability, double infraCost) {}
+    public record DependencyInput(String from, String to,
+                                   double failureProbability, double infraCost,
+                                   Double propagationDelay) {
+        public DependencyInput {
+            if (propagationDelay == null) propagationDelay = 0.0;
+        }
+    }
 }
